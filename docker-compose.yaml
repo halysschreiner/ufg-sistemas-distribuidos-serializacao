@@ -1,0 +1,24 @@
+services:
+  app-cadastro:
+    build: .
+    container_name: sistema-cadastro-container
+    ports:
+      - "3000:3000"
+      - "8000:8000"
+    volumes:
+      - ./c_server:/app/c_server
+      - ./php_api:/app/php_api
+      - ./react_frontend:/app/react_frontend
+      - /app/react_frontend/node_modules
+      - ./data:/app/data
+    stdin_open: true
+    tty: true
+    # Este comando resolve os dois problemas:
+    # 1. Compila o servidor C na inicialização, garantindo que o executável exista.
+    # 2. Inicia o supervisor para gerenciar todos os processos.
+    command: >
+      sh -c "
+      gcc -o /app/c_server/servidor /app/c_server/servidor.c -lsqlite3 -lpthread -Wall && 
+      echo 'Servidor C compilado com sucesso.' && 
+      /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+      "
