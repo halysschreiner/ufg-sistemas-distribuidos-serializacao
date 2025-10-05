@@ -51,26 +51,18 @@ class ClienteDSV
      */
     private function enviarRequisicao(string $mensagem): string
     {
-        // Criação do socket
-        $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-        if ($socket === false) {
-            return "ERRO|mensagem:Nao foi possivel criar o socket";
+        $address = sprintf('tcp://%s:%d', $this->host, $this->port);
+        $errno = 0;
+        $errstr = '';
+
+        $stream = stream_socket_client($address, $errno, $errstr, $this->timeout);
+        if ($stream === false) {
+            return "ERRO|mensagem:Nao foi possivel conectar ao servidor: ($errno) $errstr";
         }
 
-        // Conexão com o servidor
-        $conexao = socket_connect($socket, $this->host, $this->port);
-        if ($conexao === false) {
-            return "ERRO|mensagem:Nao foi possivel conectar ao servidor C";
-        }
-
-        // Envio da mensagem
-        socket_write($socket, $mensagem, strlen($mensagem));
-
-        // Leitura da resposta
-        $resposta = socket_read($socket, 4096);
-
-        // Fechamento do socket
-        socket_close($socket);
+        fwrite($stream, $mensagem);
+        $resposta = fread($stream, 4096);
+        fclose($stream);
 
         return $resposta ?: "ERRO|mensagem:Servidor nao respondeu";
     }
@@ -90,22 +82,29 @@ class ClienteDSV
             case 'SUCESSO':
             case 'ERRO':
                 foreach ($partes as $parte) {
-                    list($chave, $valor) = explode(':', $parte, 2);
-                    $resultado['dados'][$chave] = $valor;
+                    if (strpos($parte, ':') !== false) {
+                        list($chave, $valor) = explode(':', $parte, 2);
+                        $resultado['dados'][$chave] = $valor;
+                    }
                 }
                 break;
 
             case 'LISTA':
                 $pessoas = [];
-                foreach ($partes as $blocoPessoa) {
-                    if (empty($blocoPessoa)) continue;
+                $stringPessoas = implode('|', $partes); // Remonta a string de pessoas
+                $blocosPessoa = explode('PESSOA#', $stringPessoas);
+                array_shift($blocosPessoa); // Remove o primeiro elemento vazio
+                
+                foreach ($blocosPessoa as $bloco) {
+                    if (empty(trim($bloco))) continue;
                     
-                    $camposPessoa = explode('#', $blocoPessoa);
-                    array_shift($camposPessoa); // Remove o "PESSOA"
+                    $camposPessoa = explode('#', rtrim($bloco, '|'));
                     $pessoa = [];
                     foreach($camposPessoa as $campo) {
-                       list($chave, $valor) = explode(':', $campo, 2);
-                       $pessoa[$chave] = $valor;
+                       if (strpos($campo, ':') !== false) {
+                           list($chave, $valor) = explode(':', $campo, 2);
+                           $pessoa[$chave] = $valor;
+                       }
                     }
                     $pessoas[] = $pessoa;
                 }
