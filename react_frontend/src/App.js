@@ -40,11 +40,11 @@ function App() {
   return (
     <div className="container">
       <header>
-        <h1>🔷 Sistema de Cadastro de Pessoas</h1>
+        <h1>Sistema de Cadastro de Pessoas</h1>
       </header>
       <main>
         <div className="form-container">
-          <h2>➕ Cadastrar Nova Pessoa</h2>
+          <h2>Cadastrar Nova Pessoa</h2>
           <CadastroForm onCadastro={handleCadastro} />
           {feedback.mensagem && (
             <div className={`feedback ${feedback.tipo}`}>
@@ -53,7 +53,7 @@ function App() {
           )}
         </div>
         <div className="list-container">
-          <h2>📋 Lista de Pessoas Cadastradas</h2>
+          <h2>Lista de Pessoas Cadastradas</h2>
           <PessoasList pessoas={pessoas} />
         </div>
       </main>
